@@ -1,237 +1,265 @@
-// Smart Image Compressor — console UI
-// OOP with C++ course project
-
-#include <filesystem>
 #include <iostream>
 #include <string>
+#include <iomanip>
+#include <filesystem>
+#include <thread>
+#include <chrono>
 
-#include "ImageCompressor.h"
-#include "LossyCompressor.h"
-#include "LosslessCompressor.h"
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 
-namespace fs = std::filesystem;
+// Forward declarations to avoid custom header files (.h)
+namespace LosslessCompressor {
+    struct CompressResult {
+        size_t originalSize;
+        size_t compressedSize;
+        long long compressTimeMs;
+        std::string predictorName;
+        bool success;
+        std::string errorMessage;
+    };
 
-// ---------------------------------------------------------------
-// Input helpers
-// ---------------------------------------------------------------
+    struct DecompressResult {
+        long long decompressTimeMs;
+        std::string predictorName;
+        int width;
+        int height;
+        int channels;
+        bool success;
+        std::string errorMessage;
+    };
 
-void showMenu() {
-    std::cout << "\n=========================================\n"
-              << "        SMART IMAGE COMPRESSOR\n"
-              << "=========================================\n"
-              << "1. Load Image\n"
-              << "2. Display Image Information\n"
-              << "3. Lossy Compression  (JPEG)\n"
-              << "4. Lossless Compression (Custom LIMG)\n"
-              << "5. Decompress LIMG File\n"
-              << "6. View Last Compression Result\n"
-              << "7. Save Report to File\n"
-              << "8. Run Lossless Compression Tests\n"
-              << "9. Exit\n"
-              << "\nEnter your choice: ";
+    bool verify(const std::string& originalPath, const std::string& reconstructedPath, int& diffPixels);
+    CompressResult compress(const std::string& inputPath, const std::string& outputPath);
+    DecompressResult decompress(const std::string& inputPath, const std::string& outputPath);
 }
 
-// Strips leading/trailing spaces and quotes from a path.
-// Useful because Windows Explorer copies paths with surrounding quotes.
-std::string cleanPath(const std::string& text) {
-    const std::string junk = " \t\r\n\"'";
-    std::size_t start = text.find_first_not_of(junk);
-    if (start == std::string::npos) return "";
-    std::size_t end = text.find_last_not_of(junk);
-    return text.substr(start, end - start + 1);
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
-// Reads a whole line safely (no leftover-newline issues).
-std::string readLine(const std::string& prompt) {
-    std::cout << prompt;
-    std::string line;
-    std::getline(std::cin, line);
-    return line;
+std::string formatSize(size_t bytes) {
+    if (bytes < 1024) return std::to_string(bytes) + " B";
+    if (bytes < 1024 * 1024) return std::to_string(bytes / 1024) + " KB";
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(2) << (bytes / (1024.0 * 1024.0)) << " MB";
+    return out.str();
 }
 
-// Keeps asking until the user types a valid integer in [minValue, maxValue].
-// Returns false if stdin is closed.
-bool readInt(const std::string& prompt, int minValue, int maxValue, int& value) {
-    while (true) {
-        std::cout << prompt;
-        std::string line;
-        if (!std::getline(std::cin, line)) return false;
-        try {
-            std::size_t used = 0;
-            int number = std::stoi(line, &used);
-            // Accept only if the entire trimmed string was consumed as a number
-            if (used == cleanPath(line).size() && number >= minValue && number <= maxValue) {
-                value = number;
-                return true;
-            }
-        } catch (const std::exception&) {}
-        std::cout << "Invalid input. Enter a number from "
-                  << minValue << " to " << maxValue << ".\n";
-    }
+void printHeader() {
+    clearScreen();
+    std::cout << "=================================================\n";
+    std::cout << "           LOSSLESS IMAGE COMPRESSOR             \n";
+    std::cout << "         Compress . Decompress . Verify          \n";
+    std::cout << "=================================================\n\n";
 }
 
-// Builds the output file path: output/<stem>_compressed.<ext>
-std::string buildOutputPath(const Image& image, const std::string& extension) {
-    fs::path stem(image.getFileName());
-    return (fs::path("output") / (stem.stem().string() + "_compressed" + extension)).string();
-}
+void handleCompress() {
+    printHeader();
+    std::cout << "--- COMPRESS IMAGE ---\n\n";
+    std::cout << "Enter the path of the image to compress (e.g., test.bmp): ";
+    std::string inputPath;
+    std::getline(std::cin >> std::ws, inputPath);
 
-// ---------------------------------------------------------------
-// Menu handlers — each one does one thing
-// ---------------------------------------------------------------
-
-void handleLoad(ImageCompressor& compressor) {
-    std::string path = cleanPath(readLine("Enter image path (e.g. images/sample.bmp): "));
-    if (path.empty()) {
-        std::cout << "No path entered.\n";
+    if (!std::filesystem::exists(inputPath)) {
+        std::cout << "\nError: File does not exist.\n";
         return;
     }
-    if (compressor.loadImage(path)) {
-        std::cout << "\nImage loaded successfully!\n";
-        compressor.getImage().displayInfo();
-    }
-}
 
-void handleLossy(ImageCompressor& compressor, LossyCompressor& lossy) {
-    if (!compressor.hasImage()) {
-        std::cout << "Please load an image first (option 1).\n";
+    cv::Mat image = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
+    if (image.empty()) {
+        std::cout << "\nError: Invalid or unsupported image format.\n";
         return;
     }
-    std::cout << "\n100 = highest quality (largest file).\n"
-              << "Lower values = smaller file, more visible artifacts.\n"
-              << "Tip: 75-90 is usually a good balance.\n";
 
-    int quality = 0;
-    if (!readInt("Enter JPEG quality (10-100): ", 10, 100, quality)) return;
+    size_t origSize = std::filesystem::file_size(inputPath);
 
-    // Polymorphism: setStrategy() takes a CompressionStrategy*
-    // but we pass a LossyCompressor* (a subclass).
-    compressor.setStrategy(&lossy);
-    std::string outputPath = buildOutputPath(compressor.getImage(), ".jpg");
+    std::cout << "\n[ Image Information ]\n";
+    std::cout << "File Name      : " << std::filesystem::path(inputPath).filename().string() << "\n";
+    std::cout << "Resolution     : " << image.cols << " x " << image.rows << "\n";
+    std::cout << "Color Channels : " << image.channels() << "\n";
+    std::cout << "Original Size  : " << formatSize(origSize) << "\n\n";
 
-    if (compressor.compressImage(outputPath, quality)) {
-        std::cout << "\nLossy compression completed.\n";
-        compressor.getResult().displayResult();
-    }
-}
+    std::string outputPath = inputPath + ".limg";
+    std::cout << "Compression Method:\n[ Our Custom Lossless Algorithm ]\n\n";
+    std::cout << "Predictor:\n[ Auto Select (Evaluate NONE, LEFT, UP, AVG, PAETH, GRADIENT) ]\n\n";
+    std::cout << "Output Format:\n.limg\n\n";
 
-void handleLossless(ImageCompressor& compressor, LosslessCompressor& lossless) {
-    if (!compressor.hasImage()) {
-        std::cout << "Please load an image first (option 1).\n";
+    std::cout << "Press ENTER to [ COMPRESS IMAGE ]...";
+    std::cin.get();
+
+    std::cout << "\nAnalyzing image...\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::cout << "Selecting predictor...\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::cout << "Building frequency table...\n";
+    std::cout << "Generating Huffman tree...\n";
+    std::cout << "Compressing...\n\n";
+
+    auto result = LosslessCompressor::compress(inputPath, outputPath);
+
+    if (!result.success) {
+        std::cout << "ERROR: " << result.errorMessage << "\n";
         return;
     }
-    std::cout << "\nCustom lossless compression preserves every pixel exactly.\n"
-              << "Uses Paeth prediction + RLE + Huffman coding.\n"
-              << "Output format: .limg (custom binary format)\n\n";
 
-    compressor.setStrategy(&lossless);
-    std::string outputPath = buildOutputPath(compressor.getImage(), ".limg");
-
-    if (compressor.compressImage(outputPath, 0)) {
-        std::cout << "\nLossless compression completed.\n";
-        compressor.getResult().displayResult();
-
-        // Automatic round-trip verification
-        std::cout << "\n--- Automatic Integrity Verification ---\n";
-        LosslessCompressor::verifyRoundTrip(compressor.getImage(), outputPath);
+    std::cout << "=================================================\n";
+    std::cout << "              COMPRESSION COMPLETE               \n";
+    std::cout << "=================================================\n\n";
+    
+    std::cout << std::left << std::setw(20) << "Predictor Used" << ": " << result.predictorName << "\n";
+    std::cout << std::left << std::setw(20) << "Original Size" << ": " << formatSize(result.originalSize) << "\n";
+    std::cout << std::left << std::setw(20) << "Compressed Size" << ": " << formatSize(result.compressedSize) << "\n";
+    
+    if (result.originalSize > result.compressedSize) {
+        size_t saved = result.originalSize - result.compressedSize;
+        double ratio = (double)result.compressedSize / result.originalSize * 100.0;
+        std::cout << std::left << std::setw(20) << "Space Saved" << ": " << formatSize(saved) << "\n";
+        std::cout << std::left << std::setw(20) << "Compression Ratio" << ": " << std::fixed << std::setprecision(2) << ratio << "%\n";
+    } else {
+        std::cout << std::left << std::setw(20) << "Space Saved" << ": None (Output is larger)\n";
+        double ratio = (double)result.compressedSize / result.originalSize * 100.0;
+        std::cout << std::left << std::setw(20) << "Compression Ratio" << ": " << std::fixed << std::setprecision(2) << ratio << "%\n";
+        std::cout << "\nNote: Lossless compression cannot guarantee size reduction for all images, especially random noise.\n";
     }
+
+    std::cout << std::left << std::setw(20) << "Compression Time" << ": " << result.compressTimeMs << " ms\n";
+    std::cout << "Output File        : " << outputPath << "\n";
 }
 
 void handleDecompress() {
-    std::string path = cleanPath(readLine("Enter .limg file path: "));
-    if (path.empty()) {
-        std::cout << "No path entered.\n";
+    printHeader();
+    std::cout << "--- DECOMPRESS IMAGE ---\n\n";
+    std::cout << "┌─────────────────────────────────┐\n";
+    std::cout << "│                                 │\n";
+    std::cout << "│      Drag & Drop Image Here     │\n";
+    std::cout << "│              or                 │\n";
+    std::cout << "│   Type path to .limg file       │\n";
+    std::cout << "│                                 │\n";
+    std::cout << "└─────────────────────────────────┘\n\n";
+
+    std::cout << "Enter .limg file path: ";
+    std::string inputPath;
+    std::getline(std::cin >> std::ws, inputPath);
+
+    // Remove quotes if dragged and dropped in Windows terminal
+    if (inputPath.size() > 2 && inputPath.front() == '"' && inputPath.back() == '"') {
+        inputPath = inputPath.substr(1, inputPath.size() - 2);
+    }
+
+    if (!std::filesystem::exists(inputPath)) {
+        std::cout << "\nError: File does not exist.\n";
         return;
     }
 
-    cv::Mat decompressed;
-    if (LosslessCompressor::decompress(path, decompressed)) {
-        std::cout << "\nDecompression successful!\n"
-                  << "  Dimensions: " << decompressed.cols << "x"
-                  << decompressed.rows << " x " << decompressed.channels()
-                  << " channels\n";
+    std::cout << "\nEnter output file path (e.g., restored.bmp): ";
+    std::string outputPath;
+    std::getline(std::cin >> std::ws, outputPath);
 
-        // Ask if user wants to save as BMP/PNG
-        std::string savePath = cleanPath(
-            readLine("Save decompressed image as (e.g. output/restored.bmp, or press Enter to skip): "));
-        if (!savePath.empty()) {
-            if (cv::imwrite(savePath, decompressed)) {
-                std::cout << "Saved to: " << savePath << "\n";
-            } else {
-                std::cerr << "Failed to save image.\n";
-            }
+    std::cout << "\nPress ENTER to [ DECOMPRESS ]...";
+    std::cin.get();
+    
+    std::cout << "\nDecompressing...\n\n";
+
+    auto result = LosslessCompressor::decompress(inputPath, outputPath);
+
+    if (!result.success) {
+        std::cout << "ERROR: " << result.errorMessage << "\n";
+        return;
+    }
+
+    std::cout << "=================================================\n";
+    std::cout << "             DECOMPRESSION COMPLETE              \n";
+    std::cout << "=================================================\n\n";
+    
+    std::cout << std::left << std::setw(20) << "Original Resolution" << ": " << result.width << " x " << result.height << "\n";
+    std::cout << std::left << std::setw(20) << "Channels" << ": " << result.channels << "\n";
+    std::cout << std::left << std::setw(20) << "Predictor Used" << ": " << result.predictorName << "\n";
+    std::cout << std::left << std::setw(20) << "Compression Method" << ": Paeth/Gradient + RLE + Huffman\n";
+    std::cout << std::left << std::setw(20) << "Decompression Time" << ": " << result.decompressTimeMs << " ms\n\n";
+
+    std::cout << "--- VERIFICATION ---\n";
+    std::cout << "Original image path to verify against (leave blank to skip): ";
+    std::string origPath;
+    std::getline(std::cin, origPath);
+
+    if (!origPath.empty() && std::filesystem::exists(origPath)) {
+        int diffPixels = 0;
+        bool verified = LosslessCompressor::verify(origPath, outputPath, diffPixels);
+        
+        std::cout << "\n";
+        if (verified) {
+            std::cout << "✓ LOSSLESS VERIFICATION PASSED\n\n";
+            std::cout << "Original Pixels      : " << (result.width * result.height) << "\n";
+            std::cout << "Reconstructed Pixels : " << (result.width * result.height) << "\n";
+            std::cout << "Different Pixels     : " << diffPixels << "\n\n";
+            std::cout << "The reconstructed image is pixel-for-pixel\nidentical to the original.\n";
+        } else {
+            std::cout << "✗ VERIFICATION FAILED\n\n";
+            if (diffPixels == -1) std::cout << "Dimensions or channels do not match, or file missing.\n";
+            else std::cout << "Different Pixels: " << diffPixels << "\n";
         }
-    } else {
-        std::cerr << "Decompression failed.\n";
     }
 }
 
-void handleViewResult(const ImageCompressor& compressor) {
-    if (!compressor.hasResult()) {
-        std::cout << "No compression result yet. Use option 3 or 4 first.\n";
-        return;
-    }
-    compressor.generateReport();
+void printAbout() {
+    printHeader();
+    std::cout << "--- How It Works ---\n\n";
+    std::cout << "Image\n";
+    std::cout << "  |\n";
+    std::cout << "  v\n";
+    std::cout << "Predictor (Analyzes neighborhood: None, Left, Up, Avg, Paeth, Gradient)\n";
+    std::cout << "  |\n";
+    std::cout << "  v\n";
+    std::cout << "Residuals (Difference between actual and predicted pixel)\n";
+    std::cout << "  |\n";
+    std::cout << "  v\n";
+    std::cout << "Entropy Coding (RLE followed by Canonical Huffman Tree)\n";
+    std::cout << "  |\n";
+    std::cout << "  v\n";
+    std::cout << "Bit Packing (Bits squeezed without byte-boundary waste)\n";
+    std::cout << "  |\n";
+    std::cout << "  v\n";
+    std::cout << ".limg (Custom format with Metadata + Checksum + Huffman Table + Payload)\n\n";
+    
+    std::cout << "Compression Algorithm : Custom built from scratch\n";
+    std::cout << "Predictor Used        : Auto-evaluated per image\n";
+    std::cout << "Entropy Coding        : Run-Length Encoding + Huffman\n";
+    std::cout << "File Format           : .limg\n";
+    std::cout << "Lossless Verification : Strict CRC32 check + Pixel Buffer Comparison\n\n";
+    
+    std::cout << "Press ENTER to return to menu...";
+    std::cin.get();
 }
 
-void handleSaveReport(const ImageCompressor& compressor) {
-    if (!compressor.hasResult()) {
-        std::cout << "No compression result yet. Use option 3 or 4 first.\n";
-        return;
-    }
-    fs::path stem(compressor.getImage().getFileName());
-    std::string reportPath =
-        (fs::path("output") / (stem.stem().string() + "_report.txt")).string();
-
-    if (compressor.saveResult(reportPath)) {
-        std::cout << "Report saved to " << reportPath << "\n";
-    }
-}
-
-void handleRunTests(const ImageCompressor& compressor) {
-    std::string imagePath;
-    if (compressor.hasImage()) {
-        imagePath = compressor.getImage().getFilePath();
-        std::cout << "\nWill include loaded image (" << compressor.getImage().getFileName()
-                  << ") in the test suite.\n";
-    } else {
-        std::cout << "\nNo image loaded — running synthetic tests only.\n"
-                  << "Load an image first (option 1) to also benchmark against OpenCV PNG.\n";
-    }
-    LosslessCompressor::runTests(imagePath);
-}
-
-// ---------------------------------------------------------------
-// main — creates objects and runs the menu loop
-// ---------------------------------------------------------------
 int main() {
-    // These three objects cover the whole application:
-    ImageCompressor    compressor;  // coordinates Image + strategy + result
-    LossyCompressor    lossy;       // strategy 1: JPEG (child of CompressionStrategy)
-    LosslessCompressor lossless;    // strategy 2: Custom LIMG (child of CompressionStrategy)
-
-    int choice = 0;
     while (true) {
-        showMenu();
-        if (!readInt("", 1, 9, choice)) break;
+        printHeader();
+        std::cout << "1. Compress Image\n";
+        std::cout << "2. Decompress .limg File\n";
+        std::cout << "3. About / How it works\n";
+        std::cout << "4. Exit\n\n";
+        std::cout << "Select an option: ";
+        
+        std::string choice;
+        std::getline(std::cin, choice);
 
-        switch (choice) {
-            case 1: handleLoad(compressor);               break;
-            case 2:
-                if (compressor.hasImage())
-                    compressor.getImage().displayInfo();
-                else
-                    std::cout << "Please load an image first (option 1).\n";
-                break;
-            case 3: handleLossy(compressor, lossy);       break;
-            case 4: handleLossless(compressor, lossless);  break;
-            case 5: handleDecompress();                    break;
-            case 6: handleViewResult(compressor);          break;
-            case 7: handleSaveReport(compressor);          break;
-            case 8: handleRunTests(compressor);            break;
-            case 9:
-                std::cout << "Thank you for using Smart Image Compressor. Goodbye!\n";
-                return 0;
+        if (choice == "1") {
+            handleCompress();
+            std::cout << "\nPress ENTER to continue...";
+            std::cin.get();
+        } else if (choice == "2") {
+            handleDecompress();
+            std::cout << "\nPress ENTER to continue...";
+            std::cin.get();
+        } else if (choice == "3") {
+            printAbout();
+        } else if (choice == "4") {
+            break;
         }
     }
     return 0;

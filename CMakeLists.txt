@@ -11,12 +11,7 @@ find_package(OpenCV REQUIRED)
 
 # Core class implementations
 set(CORE_SOURCES
-    src/Image.cpp
-    src/CompressionResult.cpp
-    src/QualityMetrics.cpp
-    src/LossyCompressor.cpp
     src/LosslessCompressor.cpp
-    src/ImageCompressor.cpp
 )
 
 add_executable(SmartImageCompressor
@@ -25,7 +20,6 @@ add_executable(SmartImageCompressor
 )
 
 target_include_directories(SmartImageCompressor PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
     ${OpenCV_INCLUDE_DIRS}
 )
 
