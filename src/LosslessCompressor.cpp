@@ -11,9 +11,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include "../src/stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../src/stb_image_write.h"
 
 namespace LosslessCompressor {
 
@@ -41,55 +43,37 @@ namespace LosslessCompressor {
     DecompressResult decompress(const std::string& inputPath, const std::string& outputPath);
 }
 
-namespace { // Anonymous namespace for all internal implementation details
+namespace { 
 
-// ====================================================================
-// CRC-32 (ISO 3309)
-// ====================================================================
 uint32_t crc32(const uint8_t* data, size_t length) {
     static uint32_t table[256];
     static bool initialized = false;
     if (!initialized) {
         for (uint32_t i = 0; i < 256; ++i) {
             uint32_t crc = i;
-            for (int j = 0; j < 8; ++j) {
-                crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320u : (crc >> 1);
-            }
+            for (int j = 0; j < 8; ++j) crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320u : (crc >> 1);
             table[i] = crc;
         }
         initialized = true;
     }
     uint32_t crc = 0xFFFFFFFFu;
-    for (size_t i = 0; i < length; ++i) {
-        crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
-    }
+    for (size_t i = 0; i < length; ++i) crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
     return crc ^ 0xFFFFFFFFu;
 }
 
-// ====================================================================
-// Bit-level I/O
-// ====================================================================
 class BitWriter {
 public:
     void writeBit(uint8_t bit) {
         currentByte_ = (currentByte_ | ((bit & 1) << (7 - bitPos_)));
         ++bitPos_;
         ++totalBits_;
-        if (bitPos_ == 8) {
-            buffer_.push_back(currentByte_);
-            currentByte_ = 0;
-            bitPos_ = 0;
-        }
+        if (bitPos_ == 8) { buffer_.push_back(currentByte_); currentByte_ = 0; bitPos_ = 0; }
     }
     void writeBits(uint32_t value, int numBits) {
         for (int i = numBits - 1; i >= 0; --i) writeBit((value >> i) & 1);
     }
     void flush() {
-        if (bitPos_ > 0) {
-            buffer_.push_back(currentByte_);
-            currentByte_ = 0;
-            bitPos_ = 0;
-        }
+        if (bitPos_ > 0) { buffer_.push_back(currentByte_); currentByte_ = 0; bitPos_ = 0; }
     }
     const std::vector<uint8_t>& getData() const { return buffer_; }
     size_t getBitCount() const { return totalBits_; }
@@ -117,16 +101,12 @@ private:
     int bitPos_ = 7;
 };
 
-// ====================================================================
-// Huffman Coding
-// ====================================================================
 struct HuffmanNode {
     uint16_t symbol;
     uint64_t freq;
     std::shared_ptr<HuffmanNode> left, right;
     HuffmanNode(uint16_t s, uint64_t f) : symbol(s), freq(f) {}
-    HuffmanNode(uint64_t f, std::shared_ptr<HuffmanNode> l, std::shared_ptr<HuffmanNode> r) 
-        : symbol(0), freq(f), left(l), right(r) {}
+    HuffmanNode(uint64_t f, std::shared_ptr<HuffmanNode> l, std::shared_ptr<HuffmanNode> r) : symbol(0), freq(f), left(l), right(r) {}
     bool isLeaf() const { return !left && !right; }
 };
 
@@ -134,10 +114,7 @@ struct HuffCode { uint32_t code; int bitLen; };
 
 void buildCodes(const std::shared_ptr<HuffmanNode>& node, uint32_t code, int depth, std::unordered_map<uint16_t, HuffCode>& table) {
     if (!node) return;
-    if (node->isLeaf()) {
-        table[node->symbol] = { code, std::max(depth, 1) };
-        return;
-    }
+    if (node->isLeaf()) { table[node->symbol] = { code, std::max(depth, 1) }; return; }
     buildCodes(node->left, (code << 1) | 0, depth + 1, table);
     buildCodes(node->right, (code << 1) | 1, depth + 1, table);
 }
@@ -146,7 +123,9 @@ std::vector<uint8_t> serializeHuffmanTable(const std::unordered_map<uint16_t, Hu
     std::vector<uint8_t> out;
     uint16_t numEntries = (uint16_t)table.size();
     out.push_back(numEntries & 0xFF); out.push_back((numEntries >> 8) & 0xFF);
-    for (auto& [sym, hc] : table) {
+    for (auto it = table.begin(); it != table.end(); ++it) {
+        uint16_t sym = it->first;
+        const auto& hc = it->second;
         out.push_back(sym & 0xFF); out.push_back((sym >> 8) & 0xFF);
         out.push_back(hc.bitLen);
         int numBytes = (hc.bitLen + 7) / 8;
@@ -184,9 +163,6 @@ std::shared_ptr<HuffmanNode> deserializeHuffmanTable(const uint8_t* data, size_t
     return root;
 }
 
-// ====================================================================
-// RLE Encoding
-// ====================================================================
 std::vector<uint16_t> rleEncode(const std::vector<uint8_t>& data) {
     std::vector<uint16_t> out;
     size_t i = 0;
@@ -196,9 +172,7 @@ std::vector<uint16_t> rleEncode(const std::vector<uint8_t>& data) {
         while (i < data.size() && data[i] == val && (i - start) < 65535) ++i;
         size_t len = i - start;
         if (len >= 4) {
-            out.push_back(256); // escape
-            out.push_back(val);
-            out.push_back(len & 0xFFFF);
+            out.push_back(256); out.push_back(val); out.push_back(len & 0xFFFF);
         } else {
             for (size_t j = 0; j < len; ++j) out.push_back(val);
         }
@@ -224,9 +198,6 @@ std::vector<uint8_t> rleDecode(const std::vector<uint16_t>& symbols) {
     return out;
 }
 
-// ====================================================================
-// Predictors
-// ====================================================================
 enum PredictorType { NONE = 0, LEFT = 1, UP = 2, AVERAGE = 3, PAETH = 4, GRADIENT = 5 };
 
 const char* getPredictorName(int p) {
@@ -252,7 +223,9 @@ uint8_t predict(PredictorType type, uint8_t a, uint8_t b, uint8_t c) {
         }
         case GRADIENT: {
             int p = a + b - c;
-            return std::clamp(p, 0, 255);
+            if (p < 0) return 0;
+            if (p > 255) return 255;
+            return p;
         }
     }
     return 0;
@@ -287,13 +260,13 @@ std::vector<uint8_t> reversePredictor(const std::vector<uint8_t>& res, int width
 }
 
 PredictorType selectBestPredictor(const std::vector<std::vector<uint8_t>>& channels, int width, int height) {
-    // Evaluate sum of absolute residuals on a sample (first channel)
     const auto& raw = channels[0];
-    uint64_t bestScore = UINT64_MAX;
-    PredictorType bestType = PAETH; // default
+    uint64_t bestScore = 0xFFFFFFFFFFFFFFFFull; // C++11 safe
+    PredictorType bestType = PAETH; 
     PredictorType types[] = {NONE, LEFT, UP, AVERAGE, PAETH, GRADIENT};
     
-    for (PredictorType type : types) {
+    for (int i = 0; i < 6; ++i) {
+        PredictorType type = types[i];
         uint64_t score = 0;
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
@@ -302,7 +275,6 @@ PredictorType selectBestPredictor(const std::vector<std::vector<uint8_t>>& chann
                 uint8_t b = (y > 0) ? raw[idx - width] : 0;
                 uint8_t c = (x > 0 && y > 0) ? raw[idx - width - 1] : 0;
                 uint8_t res = raw[idx] - predict(type, a, b, c);
-                // Map residual to a magnitude-like penalty (e.g. 255 -> 1, 1 -> 1)
                 int penalty = (res > 127) ? (256 - res) : res;
                 score += penalty;
             }
@@ -315,9 +287,6 @@ PredictorType selectBestPredictor(const std::vector<std::vector<uint8_t>>& chann
     return bestType;
 }
 
-// ====================================================================
-// Header Format
-// ====================================================================
 #pragma pack(push, 1)
 struct LimgHeader {
     char magic[4]; 
@@ -333,6 +302,11 @@ struct LimgHeader {
 };
 #pragma pack(pop)
 
+size_t getFileSizeLocal(const std::string& path) {
+    std::ifstream in(path, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg(); 
+}
+
 } // namespace
 
 namespace LosslessCompressor {
@@ -343,37 +317,28 @@ CompressResult compress(const std::string& inputPath, const std::string& outputP
 
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    cv::Mat mat = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
-    if (mat.empty()) {
-        result.errorMessage = "Failed to load image. Invalid or unsupported format.";
-        return result;
-    }
-    if (mat.depth() != CV_8U) {
-        result.errorMessage = "Only 8-bit images are currently supported.";
+    int width, height, channels;
+    uint8_t* imgData = stbi_load(inputPath.c_str(), &width, &height, &channels, 0);
+    
+    if (!imgData) {
+        result.errorMessage = "Failed to load image via stb_image. Invalid or unsupported format.";
         return result;
     }
 
-    int width = mat.cols;
-    int height = mat.rows;
-    int channels = mat.channels();
-    
-    cv::Mat continuous = mat.isContinuous() ? mat : mat.clone();
-    size_t totalBytes = continuous.total() * continuous.elemSize();
-    std::vector<uint8_t> rawBytes(continuous.data, continuous.data + totalBytes);
+    size_t totalBytes = width * height * channels;
+    std::vector<uint8_t> rawBytes(imgData, imgData + totalBytes);
+    stbi_image_free(imgData);
     
     uint32_t originalCRC = crc32(rawBytes.data(), rawBytes.size());
 
-    // Separate channels
     std::vector<std::vector<uint8_t>> planes(channels, std::vector<uint8_t>(width * height));
     for (int p = 0; p < width * height; ++p) {
-        for (int c = 0; c < channels; ++c) planes[c][p] = continuous.data[p * channels + c];
+        for (int c = 0; c < channels; ++c) planes[c][p] = rawBytes[p * channels + c];
     }
 
-    // Select Predictor
     PredictorType bestPredictor = selectBestPredictor(planes, width, height);
     result.predictorName = getPredictorName(bestPredictor);
 
-    // Apply Prediction
     std::vector<uint8_t> allResiduals;
     allResiduals.reserve(totalBytes);
     for (int c = 0; c < channels; ++c) {
@@ -381,18 +346,21 @@ CompressResult compress(const std::string& inputPath, const std::string& outputP
         allResiduals.insert(allResiduals.end(), res.begin(), res.end());
     }
 
-    // RLE
     std::vector<uint16_t> rleSymbols = rleEncode(allResiduals);
 
-    // Huffman
     std::unordered_map<uint16_t, uint64_t> freq;
     for (uint16_t s : rleSymbols) freq[s]++;
     
-    auto cmp = [](const std::shared_ptr<HuffmanNode>& a, const std::shared_ptr<HuffmanNode>& b) { return a->freq > b->freq; };
-    std::priority_queue<std::shared_ptr<HuffmanNode>, std::vector<std::shared_ptr<HuffmanNode>>, decltype(cmp)> pq(cmp);
-    for (auto& [sym, f] : freq) pq.push(std::make_shared<HuffmanNode>(sym, f));
+    struct CmpNode {
+        bool operator()(const std::shared_ptr<HuffmanNode>& a, const std::shared_ptr<HuffmanNode>& b) const {
+            return a->freq > b->freq;
+        }
+    };
+    std::priority_queue<std::shared_ptr<HuffmanNode>, std::vector<std::shared_ptr<HuffmanNode>>, CmpNode> pq;
     
-    if (pq.empty()) pq.push(std::make_shared<HuffmanNode>(0, 1)); // edge case
+    for (auto it = freq.begin(); it != freq.end(); ++it) pq.push(std::make_shared<HuffmanNode>(it->first, it->second));
+    
+    if (pq.empty()) pq.push(std::make_shared<HuffmanNode>(0, 1)); 
     while (pq.size() > 1) {
         auto l = pq.top(); pq.pop();
         auto r = pq.top(); pq.pop();
@@ -404,7 +372,6 @@ CompressResult compress(const std::string& inputPath, const std::string& outputP
     
     std::vector<uint8_t> serializedTable = serializeHuffmanTable(huffTable);
 
-    // Bit Packing
     BitWriter bw;
     for (uint16_t s : rleSymbols) {
         const auto& hc = huffTable[s];
@@ -412,7 +379,6 @@ CompressResult compress(const std::string& inputPath, const std::string& outputP
     }
     bw.flush();
 
-    // Write file
     std::ofstream out(outputPath, std::ios::binary);
     if (!out) {
         result.errorMessage = "Failed to open output file for writing.";
@@ -437,11 +403,12 @@ CompressResult compress(const std::string& inputPath, const std::string& outputP
     
     uint32_t payloadCRC = crc32(bw.getData().data(), bw.getData().size());
     out.write((const char*)&payloadCRC, sizeof(payloadCRC));
+    out.close();
 
     auto t1 = std::chrono::high_resolution_clock::now();
     
-    result.originalSize = std::filesystem::file_size(inputPath);
-    result.compressedSize = std::filesystem::file_size(outputPath);
+    result.originalSize = getFileSizeLocal(inputPath);
+    result.compressedSize = getFileSizeLocal(outputPath);
     result.compressTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
     result.success = true;
     return result;
@@ -481,7 +448,6 @@ DecompressResult decompress(const std::string& inputPath, const std::string& out
         return result;
     }
 
-    // Decode Huffman
     size_t bytesRead = 0;
     auto root = deserializeHuffmanTable(huffData.data(), huffData.size(), bytesRead);
     
@@ -499,10 +465,8 @@ DecompressResult decompress(const std::string& inputPath, const std::string& out
         if (node) rleSymbols.push_back(node->symbol);
     }
 
-    // Decode RLE
     auto residuals = rleDecode(rleSymbols);
 
-    // Reverse Prediction
     size_t planeSize = header.width * header.height;
     std::vector<std::vector<uint8_t>> planes(header.channels);
     for (int c = 0; c < header.channels; ++c) {
@@ -510,20 +474,21 @@ DecompressResult decompress(const std::string& inputPath, const std::string& out
         planes[c] = reversePredictor(resPlane, header.width, header.height, (PredictorType)header.predictor);
     }
 
-    // Interleave channels
-    cv::Mat outMat(header.height, header.width, CV_8UC(header.channels));
+    std::vector<uint8_t> outBytes(header.width * header.height * header.channels);
     for (size_t p = 0; p < planeSize; ++p) {
-        for (int c = 0; c < header.channels; ++c) outMat.data[p * header.channels + c] = planes[c][p];
+        for (int c = 0; c < header.channels; ++c) outBytes[p * header.channels + c] = planes[c][p];
     }
 
-    // Verify CRC
-    std::vector<uint8_t> rawBytes(outMat.data, outMat.data + outMat.total() * outMat.elemSize());
-    if (crc32(rawBytes.data(), rawBytes.size()) != header.originalCRC) {
+    if (crc32(outBytes.data(), outBytes.size()) != header.originalCRC) {
         result.errorMessage = "Pixel data verification failed. File may be corrupted.";
         return result;
     }
 
-    cv::imwrite(outputPath, outMat);
+    int success = stbi_write_png(outputPath.c_str(), header.width, header.height, header.channels, outBytes.data(), header.width * header.channels);
+    if (!success) {
+        result.errorMessage = "Failed to write decompressed image to disk.";
+        return result;
+    }
 
     auto t1 = std::chrono::high_resolution_clock::now();
     result.decompressTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
@@ -536,22 +501,23 @@ DecompressResult decompress(const std::string& inputPath, const std::string& out
 }
 
 bool verify(const std::string& originalPath, const std::string& reconstructedPath, int& diffPixels) {
-    cv::Mat orig = cv::imread(originalPath, cv::IMREAD_UNCHANGED);
-    cv::Mat recon = cv::imread(reconstructedPath, cv::IMREAD_UNCHANGED);
+    int w1, h1, c1;
+    uint8_t* d1 = stbi_load(originalPath.c_str(), &w1, &h1, &c1, 0);
+    
+    int w2, h2, c2;
+    uint8_t* d2 = stbi_load(reconstructedPath.c_str(), &w2, &h2, &c2, 0);
     
     diffPixels = 0;
-    if (orig.empty() || recon.empty()) { diffPixels = -1; return false; }
-    if (orig.size() != recon.size() || orig.channels() != recon.channels()) { diffPixels = -1; return false; }
+    if (!d1 || !d2) { diffPixels = -1; if(d1) stbi_image_free(d1); if(d2) stbi_image_free(d2); return false; }
+    if (w1 != w2 || h1 != h2 || c1 != c2) { diffPixels = -1; stbi_image_free(d1); stbi_image_free(d2); return false; }
 
-    cv::Mat diff;
-    cv::compare(orig, recon, diff, cv::CMP_NE);
-    
-    // diff is 255 where pixels differ. Sum over all channels.
-    std::vector<cv::Mat> channels;
-    cv::split(diff, channels);
-    for (const auto& ch : channels) {
-        diffPixels += cv::countNonZero(ch);
+    size_t total = w1 * h1 * c1;
+    for (size_t i = 0; i < total; ++i) {
+        if (d1[i] != d2[i]) diffPixels++;
     }
+    
+    stbi_image_free(d1);
+    stbi_image_free(d2);
     
     return diffPixels == 0;
 }

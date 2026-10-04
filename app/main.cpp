@@ -1,12 +1,11 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-#include <filesystem>
-#include <thread>
 #include <chrono>
+#include <cstdio>
+#include <sstream>
 
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include "../src/stb_image.h" // We use stb_image here just for getting width/height in UI
 
 // Forward declarations to avoid custom header files (.h)
 namespace LosslessCompressor {
@@ -34,6 +33,24 @@ namespace LosslessCompressor {
     DecompressResult decompress(const std::string& inputPath, const std::string& outputPath);
 }
 
+bool fileExists(const std::string& path) {
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f) {
+        fclose(f);
+        return true;
+    }
+    return false;
+}
+
+size_t getFileSize(const std::string& path) {
+    FILE* f = fopen(path.c_str(), "rb");
+    if (!f) return 0;
+    fseek(f, 0, SEEK_END);
+    size_t size = ftell(f);
+    fclose(f);
+    return size;
+}
+
 void clearScreen() {
 #ifdef _WIN32
     system("cls");
@@ -48,6 +65,12 @@ std::string formatSize(size_t bytes) {
     std::ostringstream out;
     out << std::fixed << std::setprecision(2) << (bytes / (1024.0 * 1024.0)) << " MB";
     return out.str();
+}
+
+std::string getFilename(const std::string& path) {
+    size_t pos = path.find_last_of("/\\");
+    if (pos == std::string::npos) return path;
+    return path.substr(pos + 1);
 }
 
 void printHeader() {
@@ -65,23 +88,28 @@ void handleCompress() {
     std::string inputPath;
     std::getline(std::cin >> std::ws, inputPath);
 
-    if (!std::filesystem::exists(inputPath)) {
+    // Remove quotes if dragged and dropped in Windows terminal
+    if (inputPath.size() > 2 && inputPath.front() == '"' && inputPath.back() == '"') {
+        inputPath = inputPath.substr(1, inputPath.size() - 2);
+    }
+
+    if (!fileExists(inputPath)) {
         std::cout << "\nError: File does not exist.\n";
         return;
     }
 
-    cv::Mat image = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
-    if (image.empty()) {
+    int width, height, channels;
+    if (!stbi_info(inputPath.c_str(), &width, &height, &channels)) {
         std::cout << "\nError: Invalid or unsupported image format.\n";
         return;
     }
 
-    size_t origSize = std::filesystem::file_size(inputPath);
+    size_t origSize = getFileSize(inputPath);
 
     std::cout << "\n[ Image Information ]\n";
-    std::cout << "File Name      : " << std::filesystem::path(inputPath).filename().string() << "\n";
-    std::cout << "Resolution     : " << image.cols << " x " << image.rows << "\n";
-    std::cout << "Color Channels : " << image.channels() << "\n";
+    std::cout << "File Name      : " << getFilename(inputPath) << "\n";
+    std::cout << "Resolution     : " << width << " x " << height << "\n";
+    std::cout << "Color Channels : " << channels << "\n";
     std::cout << "Original Size  : " << formatSize(origSize) << "\n\n";
 
     std::string outputPath = inputPath + ".limg";
@@ -93,9 +121,7 @@ void handleCompress() {
     std::cin.get();
 
     std::cout << "\nAnalyzing image...\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::cout << "Selecting predictor...\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::cout << "Building frequency table...\n";
     std::cout << "Generating Huffman tree...\n";
     std::cout << "Compressing...\n\n";
@@ -146,17 +172,16 @@ void handleDecompress() {
     std::string inputPath;
     std::getline(std::cin >> std::ws, inputPath);
 
-    // Remove quotes if dragged and dropped in Windows terminal
     if (inputPath.size() > 2 && inputPath.front() == '"' && inputPath.back() == '"') {
         inputPath = inputPath.substr(1, inputPath.size() - 2);
     }
 
-    if (!std::filesystem::exists(inputPath)) {
+    if (!fileExists(inputPath)) {
         std::cout << "\nError: File does not exist.\n";
         return;
     }
 
-    std::cout << "\nEnter output file path (e.g., restored.bmp): ";
+    std::cout << "\nEnter output file path (e.g., restored.png): ";
     std::string outputPath;
     std::getline(std::cin >> std::ws, outputPath);
 
@@ -187,7 +212,11 @@ void handleDecompress() {
     std::string origPath;
     std::getline(std::cin, origPath);
 
-    if (!origPath.empty() && std::filesystem::exists(origPath)) {
+    if (origPath.size() > 2 && origPath.front() == '"' && origPath.back() == '"') {
+        origPath = origPath.substr(1, origPath.size() - 2);
+    }
+
+    if (!origPath.empty() && fileExists(origPath)) {
         int diffPixels = 0;
         bool verified = LosslessCompressor::verify(origPath, outputPath, diffPixels);
         
