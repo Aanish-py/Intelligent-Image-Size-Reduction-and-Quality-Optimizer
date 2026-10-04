@@ -55,6 +55,8 @@ void CompressionResult::displayResult(std::ostream& out) const {
     // Label the quality parameter correctly for each method.
     if (methodName.find("Lossy") != std::string::npos)
         out << std::setw(20) << "JPEG Quality" << ": " << qualityParam << " / 100\n";
+    else if (methodName.find("LIMG") != std::string::npos)
+        out << std::setw(20) << "Algorithm" << ": Paeth + RLE + Huffman\n";
     else
         out << std::setw(20) << "PNG Level"    << ": " << qualityParam << " / 9\n";
 

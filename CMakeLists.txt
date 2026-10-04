@@ -25,7 +25,7 @@ add_executable(SmartImageCompressor
 )
 
 target_include_directories(SmartImageCompressor PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
     ${OpenCV_INCLUDE_DIRS}
 )
 

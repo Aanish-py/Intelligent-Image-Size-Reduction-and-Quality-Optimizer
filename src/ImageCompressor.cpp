@@ -1,5 +1,8 @@
 #include "ImageCompressor.h"
+#include "LosslessCompressor.h"
 
+#include <algorithm>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -82,12 +85,28 @@ bool ImageCompressor::compressImage(const std::string& outputPath, int quality) 
                                quality);
 
     // Calculate PSNR from actual pixel data.
-    // Load the compressed image back and compare pixel-by-pixel.
-    Image compressedImage;
-    if (compressedImage.loadImage(outputPath)) {
-        QualityMetrics metrics;
-        if (metrics.calculatePSNR(image.getPixelData(), compressedImage.getPixelData())) {
-            result.setMetrics(metrics);
+    // For .limg files we decompress manually; for standard formats use OpenCV.
+    std::string ext = outputPath.substr(outputPath.rfind('.'));
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (ext == ".limg") {
+        // Custom format: decompress and compare pixel buffers directly
+        cv::Mat decompressed;
+        if (LosslessCompressor::decompress(outputPath, decompressed)) {
+            QualityMetrics metrics;
+            if (metrics.calculatePSNR(image.getPixelData(), decompressed)) {
+                result.setMetrics(metrics);
+            }
+        }
+    } else {
+        // Standard image format: load back with OpenCV
+        Image compressedImage;
+        if (compressedImage.loadImage(outputPath)) {
+            QualityMetrics metrics;
+            if (metrics.calculatePSNR(image.getPixelData(), compressedImage.getPixelData())) {
+                result.setMetrics(metrics);
+            }
         }
     }
 
@@ -100,36 +119,75 @@ std::string ImageCompressor::buildReport() const {
     std::ostringstream report;
     result.displayResult(report);
 
-    // Append an original-vs-compressed comparison table.
-    Image compressedImage;
-    if (compressedImage.loadImage(result.getOutputPath())) {
-        report << "\n===== ORIGINAL vs COMPRESSED =====\n"
-               << std::left
-               << std::setw(12) << "Property"
-               << std::setw(16) << "Original"
-               << std::setw(16) << "Compressed" << "\n"
-               << std::string(44, '-') << "\n"
-               << std::setw(12) << "Format"
-               << std::setw(16) << image.getFormat()
-               << std::setw(16) << compressedImage.getFormat() << "\n"
-               << std::setw(12) << "Width"
-               << std::setw(16) << (std::to_string(image.getWidth()) + " px")
-               << std::setw(16) << (std::to_string(compressedImage.getWidth()) + " px") << "\n"
-               << std::setw(12) << "Height"
-               << std::setw(16) << (std::to_string(image.getHeight()) + " px")
-               << std::setw(16) << (std::to_string(compressedImage.getHeight()) + " px") << "\n"
-               << std::setw(12) << "Channels"
-               << std::setw(16) << image.getChannels()
-               << std::setw(16) << compressedImage.getChannels() << "\n"
-               << std::setw(12) << "Size"
-               << std::setw(16) << Image::formatSize(image.getFileSize())
-               << std::setw(16) << Image::formatSize(compressedImage.getFileSize()) << "\n"
-               << "==================================\n";
+    // Check if the output is a custom .limg file
+    std::string outPath = result.getOutputPath();
+    std::string ext = outPath.substr(outPath.rfind('.'));
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    bool isLimg = (ext == ".limg");
+
+    if (isLimg) {
+        // For LIMG: decompress to get properties for the comparison table
+        cv::Mat decompressed;
+        if (LosslessCompressor::decompress(outPath, decompressed)) {
+            report << "\n===== ORIGINAL vs COMPRESSED =====\n"
+                   << std::left
+                   << std::setw(12) << "Property"
+                   << std::setw(16) << "Original"
+                   << std::setw(16) << "Compressed" << "\n"
+                   << std::string(44, '-') << "\n"
+                   << std::setw(12) << "Format"
+                   << std::setw(16) << image.getFormat()
+                   << std::setw(16) << "LIMG" << "\n"
+                   << std::setw(12) << "Width"
+                   << std::setw(16) << (std::to_string(image.getWidth()) + " px")
+                   << std::setw(16) << (std::to_string(decompressed.cols) + " px") << "\n"
+                   << std::setw(12) << "Height"
+                   << std::setw(16) << (std::to_string(image.getHeight()) + " px")
+                   << std::setw(16) << (std::to_string(decompressed.rows) + " px") << "\n"
+                   << std::setw(12) << "Channels"
+                   << std::setw(16) << image.getChannels()
+                   << std::setw(16) << decompressed.channels() << "\n"
+                   << std::setw(12) << "Size"
+                   << std::setw(16) << Image::formatSize(image.getFileSize())
+                   << std::setw(16) << Image::formatSize(result.getCompressedSize()) << "\n"
+                   << "==================================\n";
+        }
+    } else {
+        // Standard format: load back with OpenCV
+        Image compressedImage;
+        if (compressedImage.loadImage(outPath)) {
+            report << "\n===== ORIGINAL vs COMPRESSED =====\n"
+                   << std::left
+                   << std::setw(12) << "Property"
+                   << std::setw(16) << "Original"
+                   << std::setw(16) << "Compressed" << "\n"
+                   << std::string(44, '-') << "\n"
+                   << std::setw(12) << "Format"
+                   << std::setw(16) << image.getFormat()
+                   << std::setw(16) << compressedImage.getFormat() << "\n"
+                   << std::setw(12) << "Width"
+                   << std::setw(16) << (std::to_string(image.getWidth()) + " px")
+                   << std::setw(16) << (std::to_string(compressedImage.getWidth()) + " px") << "\n"
+                   << std::setw(12) << "Height"
+                   << std::setw(16) << (std::to_string(image.getHeight()) + " px")
+                   << std::setw(16) << (std::to_string(compressedImage.getHeight()) + " px") << "\n"
+                   << std::setw(12) << "Channels"
+                   << std::setw(16) << image.getChannels()
+                   << std::setw(16) << compressedImage.getChannels() << "\n"
+                   << std::setw(12) << "Size"
+                   << std::setw(16) << Image::formatSize(image.getFileSize())
+                   << std::setw(16) << Image::formatSize(compressedImage.getFileSize()) << "\n"
+                   << "==================================\n";
+        }
     }
 
     if (result.getMethodName().find("Lossy") != std::string::npos) {
         report << "\nLossy: some pixel data is permanently discarded to reduce file size.\n"
                << "JPEG quality " << result.getQualityParam() << " was used.\n";
+    } else if (isLimg) {
+        report << "\nLossless: every pixel value is preserved exactly.\n"
+               << "Custom LIMG compression (Paeth + RLE + Huffman) was used.\n";
     } else {
         report << "\nLossless: every pixel value is preserved exactly.\n"
                << "PNG compression level " << result.getQualityParam() << " was used.\n";

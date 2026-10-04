@@ -22,10 +22,12 @@ void showMenu() {
               << "1. Load Image\n"
               << "2. Display Image Information\n"
               << "3. Lossy Compression  (JPEG)\n"
-              << "4. Lossless Compression (PNG)\n"
-              << "5. View Last Compression Result\n"
-              << "6. Save Report to File\n"
-              << "7. Exit\n"
+              << "4. Lossless Compression (Custom LIMG)\n"
+              << "5. Decompress LIMG File\n"
+              << "6. View Last Compression Result\n"
+              << "7. Save Report to File\n"
+              << "8. Run Lossless Compression Tests\n"
+              << "9. Exit\n"
               << "\nEnter your choice: ";
 }
 
@@ -118,18 +120,49 @@ void handleLossless(ImageCompressor& compressor, LosslessCompressor& lossless) {
         std::cout << "Please load an image first (option 1).\n";
         return;
     }
-    std::cout << "\nLossless PNG preserves every pixel exactly.\n"
-              << "Level 0 = fastest, 9 = smallest file.\n";
-
-    int level = 0;
-    if (!readInt("Enter PNG compression level (0-9): ", 0, 9, level)) return;
+    std::cout << "\nCustom lossless compression preserves every pixel exactly.\n"
+              << "Uses Paeth prediction + RLE + Huffman coding.\n"
+              << "Output format: .limg (custom binary format)\n\n";
 
     compressor.setStrategy(&lossless);
-    std::string outputPath = buildOutputPath(compressor.getImage(), ".png");
+    std::string outputPath = buildOutputPath(compressor.getImage(), ".limg");
 
-    if (compressor.compressImage(outputPath, level)) {
+    if (compressor.compressImage(outputPath, 0)) {
         std::cout << "\nLossless compression completed.\n";
         compressor.getResult().displayResult();
+
+        // Automatic round-trip verification
+        std::cout << "\n--- Automatic Integrity Verification ---\n";
+        LosslessCompressor::verifyRoundTrip(compressor.getImage(), outputPath);
+    }
+}
+
+void handleDecompress() {
+    std::string path = cleanPath(readLine("Enter .limg file path: "));
+    if (path.empty()) {
+        std::cout << "No path entered.\n";
+        return;
+    }
+
+    cv::Mat decompressed;
+    if (LosslessCompressor::decompress(path, decompressed)) {
+        std::cout << "\nDecompression successful!\n"
+                  << "  Dimensions: " << decompressed.cols << "x"
+                  << decompressed.rows << " x " << decompressed.channels()
+                  << " channels\n";
+
+        // Ask if user wants to save as BMP/PNG
+        std::string savePath = cleanPath(
+            readLine("Save decompressed image as (e.g. output/restored.bmp, or press Enter to skip): "));
+        if (!savePath.empty()) {
+            if (cv::imwrite(savePath, decompressed)) {
+                std::cout << "Saved to: " << savePath << "\n";
+            } else {
+                std::cerr << "Failed to save image.\n";
+            }
+        }
+    } else {
+        std::cerr << "Decompression failed.\n";
     }
 }
 
@@ -155,6 +188,19 @@ void handleSaveReport(const ImageCompressor& compressor) {
     }
 }
 
+void handleRunTests(const ImageCompressor& compressor) {
+    std::string imagePath;
+    if (compressor.hasImage()) {
+        imagePath = compressor.getImage().getFilePath();
+        std::cout << "\nWill include loaded image (" << compressor.getImage().getFileName()
+                  << ") in the test suite.\n";
+    } else {
+        std::cout << "\nNo image loaded — running synthetic tests only.\n"
+                  << "Load an image first (option 1) to also benchmark against OpenCV PNG.\n";
+    }
+    LosslessCompressor::runTests(imagePath);
+}
+
 // ---------------------------------------------------------------
 // main — creates objects and runs the menu loop
 // ---------------------------------------------------------------
@@ -162,12 +208,12 @@ int main() {
     // These three objects cover the whole application:
     ImageCompressor    compressor;  // coordinates Image + strategy + result
     LossyCompressor    lossy;       // strategy 1: JPEG (child of CompressionStrategy)
-    LosslessCompressor lossless;    // strategy 2: PNG  (child of CompressionStrategy)
+    LosslessCompressor lossless;    // strategy 2: Custom LIMG (child of CompressionStrategy)
 
     int choice = 0;
     while (true) {
         showMenu();
-        if (!readInt("", 1, 7, choice)) break;
+        if (!readInt("", 1, 9, choice)) break;
 
         switch (choice) {
             case 1: handleLoad(compressor);               break;
@@ -178,10 +224,12 @@ int main() {
                     std::cout << "Please load an image first (option 1).\n";
                 break;
             case 3: handleLossy(compressor, lossy);       break;
-            case 4: handleLossless(compressor, lossless); break;
-            case 5: handleViewResult(compressor);         break;
-            case 6: handleSaveReport(compressor);         break;
-            case 7:
+            case 4: handleLossless(compressor, lossless);  break;
+            case 5: handleDecompress();                    break;
+            case 6: handleViewResult(compressor);          break;
+            case 7: handleSaveReport(compressor);          break;
+            case 8: handleRunTests(compressor);            break;
+            case 9:
                 std::cout << "Thank you for using Smart Image Compressor. Goodbye!\n";
                 return 0;
         }
