@@ -1,0 +1,43 @@
+# ==============================================================================
+# Smart Image Compressor — .gitignore
+# ==============================================================================
+
+# Build output & binary artifacts
+build/
+bin/
+out/
+*.exe
+*.obj
+*.o
+*.dll
+*.lib
+*.a
+*.so
+*.dylib
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+install_manifest.txt
+
+# Generated output files (keep directory tracked with .gitkeep and README.md)
+output/*
+!output/.gitkeep
+!output/README.md
+
+# IDE and editor settings
+.vscode/
+.vs/
+.idea/
+*.user
+*.suo
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# OS generated files
+.DS_Store
+Thumbs.db
