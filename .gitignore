@@ -41,3 +41,5 @@ output/*
 # OS generated files
 .DS_Store
 Thumbs.db
+
+vcpkg_installed/
