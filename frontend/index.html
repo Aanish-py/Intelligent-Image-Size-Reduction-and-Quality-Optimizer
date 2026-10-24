@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelForge &mdash; Smaller Images. Smarter Compression.</title>
+  <meta name="description" content="Dual-mode image compression platform engineered in modern C++ with zero external libraries. Perfect pixel-exact lossless reconstruction and high-fidelity lossy compression.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#home" class="brand" onclick="navigateTo('home')">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" fill="var(--accent-primary)"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="var(--accent-secondary)"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="var(--accent-primary)"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5" fill="var(--accent-secondary)"></rect>
+          </svg>
+        </div>
+        <span class="brand-name">Pixel<strong>Forge</strong></span>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="nav-menu" id="navMenu">
+        <button class="nav-link active" data-tab="home" onclick="navigateTo('home')">Home</button>
+        <button class="nav-link" data-tab="workspace" onclick="navigateTo('workspace')">Compress</button>
+      </nav>
+
+      <!-- Right Action Items -->
+      <div class="nav-actions">
+        <!-- Light / Dark Mode Toggle -->
+        <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle visual theme" title="Toggle Light/Dark Theme">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Primary Header CTA -->
+        <button class="btn btn-primary btn-nav" onclick="navigateTo('workspace')">
+          Start Compressing
+        </button>
+
+        <!-- Mobile Hamburger Toggle -->
+        <button id="mobileNavToggle" class="mobile-toggle" aria-label="Toggle navigation menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+
+    <!-- ================================================================= -->
+    <!-- SECTION 1: HOMEPAGE                                              -->
+    <!-- ================================================================= -->
+    <section id="page-home" class="page-view active">
+      
+      <!-- Hero Section -->
+      <div class="hero">
+        <div class="hero-badge">
+          <span class="badge-dot"></span> Custom-Built C++17 Compression Engine
+        </div>
+        <h1 class="hero-title">Smaller Images.<br><span class="gradient-text">Smarter Compression.</span></h1>
+        <p class="hero-subtitle">
+          Compress your images with mathematical precision using custom algorithms built from scratch. Choose perfect pixel preservation or take complete control of visual fidelity.
+        </p>
+
+        <div class="hero-cta-group">
+          <button class="btn btn-primary btn-hero" onclick="navigateTo('workspace')">
+            Start Compressing
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Abstract Compression Pipeline Graphic -->
+        <div class="hero-pipeline-visual">
+          <div class="pipe-node uncompressed">
+            <div class="node-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <span class="node-tag">Original BMP</span>
+            <span class="node-size">196 KB</span>
+          </div>
+          <div class="pipe-arrow">
+            <div class="pipe-stream">
+              <span class="stream-particle"></span>
+              <span class="stream-particle"></span>
+              <span class="stream-particle"></span>
+            </div>
+            <span class="pipe-label">Custom DCT &amp; Huffman</span>
+          </div>
+          <div class="pipe-node compressed">
+            <div class="node-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <span class="node-tag">PixelForge File</span>
+            <span class="node-size highlight">11.9 KB (-93.9%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Compression Tools (iLovePDF Style Discovery) -->
+      <div class="section-container tools-discovery">
+        <div class="section-heading text-center">
+          <h2 class="section-title">Select Your Compression Mode</h2>
+          <p class="section-desc">Two distinct mathematical approaches tailored for exact fidelity or maximum efficiency.</p>
+        </div>
+
+        <div class="tools-grid">
+          <!-- Card 1: Lossless Compression -->
+          <div class="tool-card tool-lossless" onclick="selectModeAndGo('lossless')">
+            <div class="tool-header">
+              <div class="tool-icon-box cyan-glow">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <polyline points="9 12 11 14 15 10"></polyline>
+                </svg>
+              </div>
+              <span class="tool-badge cyan-badge">100% Bit-Exact</span>
+            </div>
+            <h3 class="tool-title">Lossless Compression</h3>
+            <p class="tool-description">
+              Reduce file size while preserving every single pixel value with mathematical exactness. Zero artifacts.
+            </p>
+            <ul class="tool-features">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Exact pixel-by-pixel reconstruction</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Paeth &amp; planar spatial prediction</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Chunked RLE + Canonical Huffman</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Adler-32 verification checksum</li>
+            </ul>
+            <div class="tool-action">
+              <span class="tool-btn cyan-btn">Try Lossless &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Lossy Compression -->
+          <div class="tool-card tool-lossy" onclick="selectModeAndGo('lossy')">
+            <div class="tool-header">
+              <div class="tool-icon-box purple-glow">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="4" y1="21" x2="4" y2="14"></line>
+                  <line x1="4" y1="10" x2="4" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12" y2="3"></line>
+                  <line x1="20" y1="21" x2="20" y2="16"></line>
+                  <line x1="20" y1="12" x2="20" y2="3"></line>
+                  <circle cx="4" cy="12" r="2"></circle>
+                  <circle cx="12" cy="10" r="2"></circle>
+                  <circle cx="20" cy="14" r="2"></circle>
+                </svg>
+              </div>
+              <span class="tool-badge purple-badge">Variable Ratio</span>
+            </div>
+            <h3 class="tool-title">Lossy Compression</h3>
+            <p class="tool-description">
+              Create dramatically smaller image files through frequency-domain psychoacoustic quantization with adjustable quality.
+            </p>
+            <ul class="tool-features">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Controllable quality slider (10&ndash;100)</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Pure mathematical 2D-DCT-II transform</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Reversible RGB &leftrightarrow; YCbCr decorrelation</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Interactive before &amp; after comparison</li>
+            </ul>
+            <div class="tool-action">
+              <span class="tool-btn purple-btn">Try Lossy &rarr;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Upload Zone (Accessible from Homepage) -->
+      <div class="section-container quick-upload-section">
+        <div class="quick-upload-card">
+          <div class="quick-upload-header">
+            <h3>Quick Start: Drop Your Image</h3>
+            <p>Upload an uncompressed 24-bit BMP image or select one of our pre-built test patterns.</p>
+          </div>
+
+          <!-- Drag and Drop Target -->
+          <div class="drop-zone" id="homeDropZone">
+            <div class="drop-icon-circle">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="drop-prompt">
+              <strong>Drop your 24-bit .BMP file here</strong>
+              <span>or <label class="browse-link" for="homeFileInput">browse files</label></span>
+              <input type="file" id="homeFileInput" accept=".bmp" hidden>
+            </div>
+            <div class="format-hint">
+              <span>Supported format: <strong>24-bit Windows BMP (.bmp)</strong></span>
+              <span>&bull;</span>
+              <span>Local processing via native Win32 sockets</span>
+            </div>
+          </div>
+
+          <!-- Sample Preload Buttons -->
+          <div class="sample-preload-bar">
+            <span class="preload-title">Or test with standard samples:</span>
+            <div class="preload-chips">
+              <button class="chip-btn" onclick="loadSampleImage('gradient_256x256.bmp')">
+                <span class="chip-dot"></span> Smooth Radial Gradient (256&times;256)
+              </button>
+              <button class="chip-btn" onclick="loadSampleImage('blocks_256x256.bmp')">
+                <span class="chip-dot"></span> Geometric Color Blocks (256&times;256)
+              </button>
+              <button class="chip-btn" onclick="loadSampleImage('checker_64x64.bmp')">
+                <span class="chip-dot"></span> High-Frequency Checkerboard (64&times;64)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How It Works Section -->
+      <div class="section-container how-it-works-preview">
+        <div class="section-heading text-center">
+          <h2 class="section-title">How PixelForge Works</h2>
+          <p class="section-desc">A straightforward three-step workflow designed for speed, clarity, and control.</p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number">01</div>
+            <h4>Upload Your Image</h4>
+            <p>Select or drag an uncompressed 24-bit BMP image into the workspace. The engine instantly extracts dimensions and validates row-stride alignment.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number">02</div>
+            <h4>Choose Method &amp; Settings</h4>
+            <p>Pick Lossless for 100% exact pixel preservation, or Lossy with a fine-grained quality slider to tune visual fidelity and file-size reduction.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number">03</div>
+            <h4>Inspect &amp; Download</h4>
+            <p>Examine real-time analytics (PSNR, MSE, compression ratio, processing time), slide across the before-and-after preview, and download your files.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- SECTION 2: COMPRESSION WORKSPACE (STUDIO)                        -->
+    <!-- ================================================================= -->
+    <section id="page-workspace" class="page-view">
+      
+      <div class="workspace-header">
+        <div class="breadcrumb">
+          <a href="#home" onclick="navigateTo('home')">Home</a> &rsaquo; <span>Image Compression Workspace</span>
+        </div>
+        <h2 class="workspace-title">Compression Studio</h2>
+        <p class="workspace-desc">Configure, compress, inspect, and reconstruct images through our custom C++ engine.</p>
+      </div>
+
+      <!-- Workspace Workflow Grid -->
+      <div class="workspace-layout">
+
+        <!-- Left Column: Settings & Actions -->
+        <div class="workspace-settings-col">
+          
+          <!-- State A: File Picker Box -->
+          <div class="card settings-card" id="uploadCard">
+            <div class="card-title-row">
+              <h3>1. Source Image</h3>
+              <button id="replaceBtn" class="btn btn-sm btn-outline hidden" onclick="triggerFileInput()">Replace</button>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="workspace-drop-zone" id="workspaceDropZone">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              <div class="drop-zone-text">
+                <strong>Drag &amp; drop 24-bit .BMP image</strong>
+                <span>or click to browse from disk</span>
+              </div>
+              <input type="file" id="workspaceFileInput" accept=".bmp" hidden>
+            </div>
+
+            <!-- Preloaded Test Images -->
+            <div class="quick-samples-box">
+              <span class="quick-samples-label">Quick Test Patterns:</span>
+              <div class="quick-sample-buttons">
+                <button class="btn btn-sm btn-secondary" onclick="loadSampleImage('gradient_256x256.bmp')">Gradient</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadSampleImage('blocks_256x256.bmp')">Blocks</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadSampleImage('checker_64x64.bmp')">Checkerboard</button>
+              </div>
+            </div>
+
+            <!-- File Details Pill (When image is loaded) -->
+            <div id="fileDetailsPill" class="file-details-pill hidden">
+              <div class="file-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="file-meta-col">
+                <strong id="loadedFileName" class="file-name">image.bmp</strong>
+                <span class="file-specs"><span id="loadedFileDim">0 &times; 0</span> &bull; <span id="loadedFileSize">0 KB</span> &bull; 24-bit RGB</span>
+              </div>
+              <button class="remove-file-btn" onclick="clearLoadedImage()" title="Remove image">&times;</button>
+            </div>
+          </div>
+
+          <!-- State B: Compression Settings -->
+          <div class="card settings-card">
+            <h3>2. Compression Method</h3>
+
+            <div class="mode-selector-grid">
+              <!-- Mode Button: Lossless -->
+              <button id="btnWorkspaceLossless" class="mode-select-btn active" onclick="setMode('lossless')">
+                <div class="mode-btn-icon cyan-text">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                  </svg>
+                </div>
+                <div class="mode-btn-content">
+                  <span class="mode-btn-title">Lossless (.pfl)</span>
+                  <span class="mode-btn-sub">Bit-exact reconstruction</span>
+                </div>
+              </button>
+
+              <!-- Mode Button: Lossy -->
+              <button id="btnWorkspaceLossy" class="mode-select-btn" onclick="setMode('lossy')">
+                <div class="mode-btn-icon purple-text">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                </div>
+                <div class="mode-btn-content">
+                  <span class="mode-btn-title">Lossy (.pfz)</span>
+                  <span class="mode-btn-sub">DCT quality scaling</span>
+                </div>
+              </button>
+            </div>
+
+            <!-- Dynamic Settings for Lossless -->
+            <div id="losslessDetailsPanel" class="method-sub-panel">
+              <div class="info-alert">
+                <span class="info-alert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                  </svg>
+                </span>
+                <p>Every original pixel value is preserved. The engine tests Paeth, Left, Up, and Average spatial predictors and automatically selects the highest-performing pipeline.</p>
+              </div>
+            </div>
+
+            <!-- Dynamic Settings for Lossy -->
+            <div id="lossyDetailsPanel" class="method-sub-panel hidden">
+              <div class="slider-box">
+                <div class="slider-label-row">
+                  <label for="workspaceQualitySlider">Quality Factor (Q):</label>
+                  <span class="slider-badge" id="sliderValueDisplay">75</span>
+                </div>
+                <input type="range" id="workspaceQualitySlider" min="10" max="100" value="75" step="5" oninput="onQualitySliderChange(this.value)">
+                <div class="slider-scale">
+                  <span>10 (Aggressive)</span>
+                  <span>50 (Balanced)</span>
+                  <span>75 (High)</span>
+                  <span>100 (Ultra)</span>
+                </div>
+              </div>
+              <p class="slider-note">Higher quality values preserve high-frequency details (higher PSNR). Lower values discard subtle gradients for significantly smaller files.</p>
+            </div>
+
+            <!-- Trigger Action Button -->
+            <button id="executeCompressBtn" class="btn btn-primary btn-large btn-block" onclick="executeCompression()" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:middle;margin-right:6px">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>Compress Image</span>
+            </button>
+          </div>
+
+          <!-- Secondary Decompression Drop -->
+          <div class="card settings-card decompress-box">
+            <h4>Restore Compressed Image</h4>
+            <p>Upload an existing PixelForge container file (<strong>.pfl</strong> or <strong>.pfz</strong>) to decompress it back to BMP.</p>
+            <label class="btn btn-secondary btn-sm btn-block">
+              Upload .pfl / .pfz File
+              <input type="file" id="decompressFileInput" accept=".pfl,.pfz" hidden onchange="handleDecompressFile(event)">
+            </label>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Interactive Image Preview / Results -->
+        <div class="workspace-preview-col">
+          
+          <!-- Visual State 1: Input Preview (Before Compression) -->
+          <div id="emptyWorkspaceView" class="preview-card empty-state">
+            <div class="empty-icon-box">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <h3>No Image Selected</h3>
+            <p>Select a 24-bit BMP image on the left or click a sample pattern to begin.</p>
+          </div>
+
+          <div id="loadedWorkspaceView" class="preview-card hidden">
+            <div class="preview-header">
+              <span class="preview-title">Input Image Preview</span>
+              <span class="preview-tag" id="previewBadge">Ready</span>
+            </div>
+            <div class="preview-viewport">
+              <img id="mainInputImage" alt="Input Preview">
+            </div>
+          </div>
+
+          <!-- Visual State 2: Results & Interactive Before-and-After Slider -->
+          <div id="resultsWorkspaceView" class="preview-card results-container hidden">
+            <div class="preview-header">
+              <div class="results-title-group">
+                <span class="preview-title">Compression Output &amp; Verification</span>
+                <span class="badge" id="resultFormatBadge">.pfl</span>
+              </div>
+              <button class="btn btn-sm btn-outline" onclick="resetToWorkspace()">Compress Another</button>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <div class="kpis-grid">
+              <div class="kpi-cell">
+                <span class="kpi-label">Original Size</span>
+                <strong class="kpi-num" id="kpiOriginalSize">0 KB</strong>
+              </div>
+              <div class="kpi-cell highlight-cell">
+                <span class="kpi-label">Compressed Size</span>
+                <strong class="kpi-num" id="kpiCompressedSize">0 KB</strong>
+              </div>
+              <div class="kpi-cell">
+                <span class="kpi-label">Reduction</span>
+                <strong class="kpi-num text-cyan" id="kpiReduction">0%</strong>
+              </div>
+              <div class="kpi-cell">
+                <span class="kpi-label">Ratio</span>
+                <strong class="kpi-num text-purple" id="kpiRatio">0x</strong>
+              </div>
+              <div class="kpi-cell">
+                <span class="kpi-label">Execution Time</span>
+                <strong class="kpi-num" id="kpiTime">0 ms</strong>
+              </div>
+              <div class="kpi-cell" id="kpiFidelityCell">
+                <span class="kpi-label">Fidelity (PSNR / MSE)</span>
+                <strong class="kpi-num" id="kpiFidelity">-</strong>
+              </div>
+            </div>
+
+            <!-- Before-and-After Comparison Splitter -->
+            <div class="comparison-component">
+              <div class="comparison-toolbar">
+                <div class="preview-mode-switch">
+                  <span class="preview-switch-label">Compare With:</span>
+                  <div class="segmented-control">
+                    <button id="segBtnEngine" class="seg-btn active" onclick="switchPreviewMode('engine')">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                      <span>Engine Reconstructed (<span id="previewEngineExt">.pfz</span>)</span>
+                    </button>
+                    <button id="segBtnBmp" class="seg-btn" onclick="switchPreviewMode('bmp')">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom;margin-right:4px">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                      <span>Compressed .BMP (Windows BI_RLE8)</span>
+                    </button>
+                  </div>
+                </div>
+                <button class="btn-text-action" onclick="resetSliderToCenter()">Center Divider</button>
+              </div>
+
+              <div class="image-slider-wrapper" id="imageComparisonWrapper">
+                <!-- Underneath: Compressed Reconstructed Image -->
+                <img id="comparisonReconImg" class="comparison-img base-img" alt="Reconstructed Image">
+
+                <!-- Overlay: Original Source Image (Clipped) -->
+                <div class="comparison-overlay" id="comparisonOverlay">
+                  <img id="comparisonOrigImg" class="comparison-img overlay-img" alt="Original Image">
+                </div>
+
+                <!-- Draggable Handle Divider -->
+                <div class="slider-divider" id="sliderDivider">
+                  <div class="divider-handle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Labels -->
+                <span class="slider-tag tag-left">Original 24-Bit BMP</span>
+                <span class="slider-tag tag-right" id="sliderRightTag">Engine Reconstructed</span>
+              </div>
+            </div>
+
+            <!-- Visual Format Showcase Grid -->
+            <div class="format-showcase-section">
+              <div class="showcase-header">
+                <h4>Format Visual Comparison &amp; Gallery</h4>
+                <p>Inspect and compare every output format generated by PixelForge:</p>
+              </div>
+
+              <div class="showcase-cards-grid">
+                <!-- 1. Original Input Image -->
+                <div class="showcase-card">
+                  <div class="showcase-card-header">
+                    <span class="showcase-badge badge-orig">Original</span>
+                    <strong class="showcase-title">Input BMP</strong>
+                  </div>
+                  <div class="showcase-img-box">
+                    <img id="showcaseOrigImg" alt="Original BMP Preview">
+                  </div>
+                  <div class="showcase-meta">
+                    <div class="meta-row"><span>Format:</span> <strong>24-Bit Raw BMP</strong></div>
+                    <div class="meta-row"><span>File Size:</span> <strong id="showcaseOrigSize">0 KB</strong></div>
+                    <div class="meta-row"><span>Fidelity:</span> <strong>100% Uncompressed</strong></div>
+                  </div>
+                </div>
+
+                <!-- 2. Compressed 8-Bit RLE BMP (Native Windows Photos format!) -->
+                <div class="showcase-card highlight-showcase">
+                  <div class="showcase-card-header">
+                    <span class="showcase-badge badge-bmp">Windows .BMP</span>
+                    <strong class="showcase-title">Compressed .BMP (RLE8)</strong>
+                  </div>
+                  <div class="showcase-img-box">
+                    <img id="showcaseBmpImg" alt="Compressed BMP Preview">
+                  </div>
+                  <div class="showcase-meta">
+                    <div class="meta-row"><span>Format:</span> <strong>Windows BI_RLE8 (.bmp)</strong></div>
+                    <div class="meta-row"><span>File Size:</span> <strong id="showcaseBmpSize" class="text-cyan">0 KB</strong></div>
+                    <div class="meta-row"><span>Reduction:</span> <strong id="showcaseBmpReduction" class="text-cyan">0%</strong></div>
+                    <div class="meta-row"><span>Status:</span> <strong style="color:var(--status-success)">Exact image on your PC!</strong></div>
+                  </div>
+                  <div class="showcase-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="switchPreviewMode('bmp')">Preview in Slider</button>
+                    <a id="showcaseBmpDownloadBtn" class="btn btn-sm btn-primary" href="#" download="compressed_image.bmp">Download .BMP</a>
+                  </div>
+                </div>
+
+                <!-- 3. Engine Reconstructed Image -->
+                <div class="showcase-card">
+                  <div class="showcase-card-header">
+                    <span class="showcase-badge badge-engine">Custom Engine</span>
+                    <strong class="showcase-title">Engine Output (<span id="showcaseEngineExt">.pfz</span>)</strong>
+                  </div>
+                  <div class="showcase-img-box">
+                    <img id="showcaseEngineImg" alt="Engine Preview">
+                  </div>
+                  <div class="showcase-meta">
+                    <div class="meta-row"><span>Container Size:</span> <strong id="showcaseEngineSize" class="text-purple">0 KB</strong></div>
+                    <div class="meta-row"><span>Reduction:</span> <strong id="showcaseEngineReduction" class="text-purple">0%</strong></div>
+                    <div class="meta-row"><span>Fidelity:</span> <strong id="showcaseEnginePSNR">-</strong></div>
+                  </div>
+                  <div class="showcase-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="switchPreviewMode('engine')">Preview in Slider</button>
+                    <a id="showcaseEngineDownloadBtn" class="btn btn-sm btn-primary" href="#" download="archive">Download Archive</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Direct Download Cards Bar -->
+            <div class="results-download-bar">
+              <!-- Option 1: The true algorithm-compressed container (Maximum Reduction) -->
+              <div class="download-card primary-download">
+                <div class="download-card-info">
+                  <div class="download-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <strong>1. Download Engine Compressed Archive (<span id="downloadExtLabel">.pfl</span>)</strong>
+                    <small>Maximum size reduction (<span id="downloadCompSizeLabel">0 KB</span>) &bull; Produced by our custom C++ algorithm</small>
+                  </div>
+                </div>
+                <a id="downloadCompressedFileBtn" class="btn btn-primary" href="#" download="pixelforge_archive">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Download .PFL / .PFZ File
+                </a>
+              </div>
+
+              <!-- Option 2: Compressed 8-Bit RLE BMP (Genuine smaller .bmp on disk!) -->
+              <div class="download-card rle-download">
+                <div class="download-card-info">
+                  <div class="download-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  </div>
+                  <div>
+                    <strong>2. Download Compressed Image (.bmp) &mdash; Reduced Size</strong>
+                    <small>Standard Windows 8-bit RLE BMP (<span id="downloadRleBmpSizeLabel">0 KB</span>) &bull; Genuine smaller .bmp on disk!</small>
+                  </div>
+                </div>
+                <a id="downloadRleBmpBtn" class="btn btn-secondary" href="#" download="compressed_image.bmp">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Download Compressed .BMP
+                </a>
+              </div>
+
+              <!-- Educational Callout -->
+              <div class="format-explainer-callout">
+                <span class="explainer-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom">
+                    <path d="M9 18h6"></path>
+                    <path d="M10 22h4"></path>
+                    <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"></path>
+                  </svg>
+                </span>
+                <p><strong>Understanding BMP Sizes:</strong> Standard 24-bit uncompressed BMP allocates 3 bytes per pixel regardless of visual content (<code>Size = 54 + Width &times; Height &times; 3</code>). To get a genuinely smaller file on disk in Windows Explorer, download the <strong>.pfl / .pfz</strong> archive (95% reduction) or the <strong>Compressed 8-Bit RLE .BMP</strong>!</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+  </main>
+
+  <!-- Global Toast Notification -->
+  <div id="toastNotification" class="toast-box hidden" role="alert" aria-live="polite">
+    <span id="toastMessage">Notification message</span>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="globalLoadingOverlay" class="loading-overlay hidden">
+    <div class="spinner-ring"></div>
+    <h3 id="loadingStatusText">Processing in C++ Engine...</h3>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand-col">
+        <div class="brand">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" fill="var(--accent-primary)"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="var(--accent-secondary)"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="var(--accent-primary)"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5" fill="var(--accent-secondary)"></rect>
+          </svg>
+          <span class="brand-name">Pixel<strong>Forge</strong></span>
+        </div>
+        <p class="footer-tagline">Compress smarter. Keep what matters.</p>
+      </div>
+
+      <div class="footer-links-col">
+        <span class="footer-heading">Platform</span>
+        <a href="#home" onclick="navigateTo('home')">Home</a>
+        <a href="#workspace" onclick="navigateTo('workspace')">Compress</a>
+      </div>
+
+      <div class="footer-meta-col">
+        <span class="footer-heading">Technical Specifications</span>
+        <p>Engineered with modern C++ (C++17) &amp; native Win32 sockets. Windows 11 MinGW-w64 compatible.</p>
+        <span class="copyright">&copy; 2026 PixelForge. All algorithms custom-built.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,38 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
-project(SmartImageCompressor LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.20)
+project(PixelForge VERSION 1.0.0 LANGUAGES CXX)
 
-# C++17 required for std::filesystem
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find OpenCV (Windows: cmake -DOpenCV_DIR=C:/opencv/build ...)
-find_package(OpenCV REQUIRED)
-
-# Core class implementations
-set(CORE_SOURCES
-    src/Image.cpp
-    src/CompressionResult.cpp
-    src/QualityMetrics.cpp
-    src/LossyCompressor.cpp
-    src/LosslessCompressor.cpp
-    src/ImageCompressor.cpp
-)
-
-add_executable(SmartImageCompressor
-    ${CORE_SOURCES}
-    app/main.cpp
-)
-
-target_include_directories(SmartImageCompressor PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-    ${OpenCV_INCLUDE_DIRS}
-)
-
-target_link_libraries(SmartImageCompressor PRIVATE ${OpenCV_LIBS})
-
-if(MSVC)
-    target_compile_options(SmartImageCompressor PRIVATE /W3 /utf-8)
+# Enable compiler warnings and optimizations
+if (MSVC)
+    add_compile_options(/W4 /O2)
 else()
-    target_compile_options(SmartImageCompressor PRIVATE -Wall -Wextra)
+    add_compile_options(-Wall -Wextra -Wpedantic -O3)
 endif()
+
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+enable_testing()
+add_subdirectory(Engine)
